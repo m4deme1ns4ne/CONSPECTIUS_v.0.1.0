@@ -9,13 +9,13 @@ from loguru import logger
 def main():
     file_logger()
     giga_token = get_giga_token()
+    text = input("Введите текст запроса: ")
     try:
-        text = input("Введите текст запроса: ")
         answer = get_chat_completion(giga_token, text)
-        print(answer.json()['choices'][0]['message']['content'])
-        logger.info("Ответ получен и выведен")
-    except Exception as err:
-        logger.error(err)
+    except:
+        logger.error('Ошибка при получении ответа')
+    print(answer.json()['choices'][0]['message']['content'])
+    logger.info("Ответ получен и выведен")
 
 
 if __name__ == "__main__":

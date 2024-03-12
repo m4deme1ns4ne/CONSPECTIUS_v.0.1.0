@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #!/home/user/my-python/GIGACHATBOT/venv/bin/python3
+=======
+#!/Users/aleksandrvolzanin/my-python/imbabro/venv/bin/python3.12
+>>>>>>> 63c587b5f623b9cf60f81e2f967798a80ca5fec9
 
 import sys
 import json
