@@ -1,0 +1,17 @@
+google
+google/api
+google/rpc
+google/type
+speechkit
+speechkit/common
+speechkit/common/utils
+speechkit/stt
+speechkit/stt/yandex
+speechkit/tts
+speechkit/tts/yandex
+yandex/cloud/ai/stt/v2
+yandex/cloud/ai/stt/v3
+yandex/cloud/ai/tts/v3
+yandex/cloud/api
+yandex/cloud/api/tools
+yandex/cloud/operation

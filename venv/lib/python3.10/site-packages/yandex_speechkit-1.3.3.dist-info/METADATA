@@ -1,0 +1,182 @@
+Metadata-Version: 2.1
+Name: yandex-speechkit
+Version: 1.3.3
+Summary: SpeechKit package
+Author: eranik
+Author-email: eranik@yandex-team.ru
+License: apache-2.0
+Keywords: speechkit
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: grpcio (<=1.46.3)
+Requires-Dist: grpcio-tools (<=1.46.3)
+Requires-Dist: protobuf (<=3.20.3)
+Requires-Dist: pydub
+Requires-Dist: requests
+
+С чего начать
+---------------
+
+Приведённые ниже примеры показывают, как использовать библиотеку Yandex SpeechKit для распознавания и синтеза аудио.
+
+Чтобы реализовать примеры, установите пакет `yandex-speechkit` с помощью менеджера пакетов [pip](https://pip.pypa.io/en/stable/).
+```bash
+pip install yandex-speechkit
+```
+
+### Аутентификация в сервисе
+
+Аутентификация происходит от имени сервисного аккаунта с помощью [IAM-токена](https://cloud.yandex.com/en-ru/docs/iam/concepts/authorization/iam-token) или [API-ключа](https://cloud.yandex.com/en-ru/docs/iam/concepts/authorization/api-key). Подробнее об [аутентификации в API SpeechKit](https://cloud.yandex.com/en-ru/docs/speechkit/concepts/auth).
+
+Вы можете использовать один из следующих сниппетов для определения способа аутентификации в сервисе:
+
+#### Использование аутентификации через API-ключ
+```python3
+from speechkit import configure_credentials, creds
+
+configure_credentials(
+    yandex_credentials=creds.YandexCredentials(
+        api_key='<api key>'
+    )
+)
+```
+
+#### Использование аутентификации через IAM-токен
+```python3
+from speechkit import configure_credentials, creds
+
+configure_credentials(
+    yandex_credentials=creds.YandexCredentials(
+        iam_token='<iam token>'
+    )
+)
+```
+
+### Использование распознавания речи
+
+Используйте приведённый ниже пример для распознавания аудио в текст. Вы также можете выставить следующие параметры модели:
+* `model` &mdash; [тег версии](https://cloud.yandex.com/en-ru/docs/speechkit/stt/models#tags) модели распознавания, например `general` (основная версия модели) или `general:rc` (версия-кандидат для релиза)
+* `language` &mdash; [язык распознавания](https://cloud.yandex.com/en-ru/docs/speechkit/stt/models#languages)
+* `audio_processing_type` &mdash; параметр, определяющий способ обработки аудио (в режиме реального времени, после получения всей аудиозаписи и т.п.)
+
+NB. На текущий момент в библиотеке не поддерживана возможность потокового и асинхронного распознавания, но их можно просимулировать с помощью опции `audio_processing_type`.
+
+```python3
+from speechkit import model_repository
+from speechkit.stt import AudioProcessingType
+
+model = model_repository.recognition_model()
+
+model.model = 'general:rc'
+model.language = 'en-US'
+model.audio_processing_type = AudioProcessingType.Full
+
+result = model.transcribe_file('path/to/audio')
+for c, res in enumerate(result):
+    print(f'channel: {c}\n'
+          f'raw_text: {res.raw_text}\n'
+          f'norm_text: {res.normalized_text}\n')
+```
+
+Также в библиотеке поддержано разделение текста на фразы:
+```python3
+for c, res in enumerate(result):
+    print(f'channel: {c}')
+    for utterance in res.utterances:
+        print(utterance)
+```
+
+### Синтез речи
+
+Используйте приведённый ниже пример для синтеза речи. Доступные параметры модели:
+* `model` &mdash; тег версии модели синтеза, на текущий момент для полнотекстового синтеза доступна только версия `general`
+* `voice` &mdash; один из [доступных голосов](https://cloud.yandex.com/en-ru/docs/speechkit/tts/voices#premium)
+* `role` &mdash; одна из [доступных эмоций](https://cloud.yandex.com/en-ru/docs/speechkit/tts/voices#premium) для указанного голоса
+* `speed` &mdash; скорость речи
+* `norm_type` &mdash; тип нормализации громкости (`LUFS` или `MAX_PEAK`)
+* `volume` &mdash; значение громкости, соответствующее указанному типу нормализации громкости
+* `unsafe_mode` &mdash; специальный флаг, разрешающий синтез длинных текстов (по умолчанию можно синтезировать текст не длиннее 250 символов)
+
+По умолчанию все аудио синтезируются в формате `WAV` с частотой дискретизации 22050 Гц. Вы можете изменить это поведение, указав опции `audio_encoding` и `sample_rate` (доступно только для аудио в формате PCM).
+
+Более полное описание доступных значений параметров можно найти в [официальной документации](https://cloud.yandex.com/en-ru/docs/speechkit/tts-v3/api-ref/grpc/tts_service).
+
+```python3
+from speechkit import model_repository
+
+model = model_repository.synthesis_model()
+
+model.voice = 'john'
+
+result = model.synthesize('Hello, world!', raw_format=False)  # returns audio as pydub.AudioSegment
+result.export('path/to/audio', format='wav')
+```
+
+### Синтез речи на основе шаблона
+
+[Синтез по шаблонам](https://cloud.yandex.com/en-ru/docs/speechkit/tts/templates) &mdash; это возможность синтезировать речь по заранее заготовленным фразам (шаблонам), в которых изменяются отдельные ключевые части — переменные. Данная технология доступна только пользователям [SpeechKit Brand Voice](https://cloud.yandex.ru/docs/speechkit/tts/brand-voice/).
+
+В базовом сценарии вам будет необходимо самостоятельно подготовить шаблоны и разметить переменные, но в рамках данного примера мы сделаем это автоматически.
+
+```python3
+from speechkit import model_repository
+from speechkit.stt import AudioProcessingType
+from speechkit.tts import AudioEncoding
+from speechkit.tts.yandex import AudioTemplate, AudioTemplateVar, TextTemplate, TextTemplateVar
+
+# preparing the template phrase text
+var_desc = '{var}'
+var_original = 'Садовая'
+var_synthesis = 'Спортивная'
+text = f'Следующая станция - {var_desc}.'
+
+
+# using synthesis model to prepare template audio
+synthesis_model = model_repository.synthesis_model()
+synthesis_model.model = 'general'
+synthesis_model.voice = 'alena'
+
+original_audio = synthesis_model.synthesize(text.replace(var_desc, var_original), raw_format=True)
+
+
+# using recognition model to obtain timings for our variable
+recognition_model = model_repository.recognition_model()
+recognition_model.model = 'general:rc'
+recognition_model.language = 'ru-RU'
+recognition_model.audio_processing_type = AudioProcessingType.Full
+
+original_recognition = recognition_model.transcribe(original_audio)[0]
+assert original_recognition.raw_text == 'следующая станция садовая'
+variable_markup = original_recognition.words[-1]
+
+
+# forming the request
+text_template = TextTemplate(
+    text=text,
+    variables=[
+        TextTemplateVar(
+            name=var_desc,
+            value=var_synthesis
+        )
+    ]
+)
+
+audio_template = AudioTemplate(
+    audio=original_audio,
+    audio_format=AudioEncoding.WAV,
+    variables=[
+        AudioTemplateVar(
+            name=var_desc,
+            start_ms=variable_markup.start_time_ms,
+            length_ms=variable_markup.end_time_ms - variable_markup.start_time_ms
+        )
+    ]
+)
+
+pattern_based_synthesis_model = model_repository.synthesis_model()
+pattern_based_synthesis_model.model = 'zsl'  # set this parameter if you use SpeechKit Brand Voice Call Center
+pattern_based_synthesis_model.voice = '<voice_id>'  # set this parameter if you do not use SpeechKit Brand Voice Call Center
+
+result = pattern_based_synthesis_model.synthesize_template(text_template, audio_template, raw_format=False)
+result.export('path/to/audio', format='wav')
+```
