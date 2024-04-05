@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "imbabro"
+version = "0.1.0"
+description = ""
+authors = ["Alexander <alexandervolzhanin2004@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+loguru = "^0.7.2"
+requests = "^2.31.0"
+assemblyai = "^0.24.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
