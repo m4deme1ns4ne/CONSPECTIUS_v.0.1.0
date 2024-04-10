@@ -6,3 +6,4 @@ assemblyai_apikey.py
 gigachatbot/auth.py
 >>>>>>> f88ae1d447f7fd46ba2067059f60e133f180a946
 __pycache__
+debug.log
